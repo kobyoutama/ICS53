@@ -1,0 +1,141 @@
+        -:    0:Source:p3.c
+        -:    0:Graph:./p3.gcno
+        -:    0:Data:./p3.gcda
+        -:    0:Runs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <stdlib.h>
+        -:    3:#include <string.h>
+        -:    4:
+        -:    5:#define BUF_SZ 256
+        -:    6:
+        -:    7:struct Node{
+        -:    8:    int start_time;
+        -:    9:    int end_time;
+        -:   10:    struct Node* next;
+        -:   11:    char event_name[BUF_SZ];
+        -:   12:};
+        -:   13:
+        1:   14:void add_event(struct Node** head, char* event, int start_time, int end_time){
+        -:   15:    
+        -:   16:    
+        1:   17:    struct Node* new_event = malloc(sizeof(struct Node));
+        -:   18:            
+        1:   19:            new_event->start_time = start_time;
+        1:   20:            new_event->end_time = end_time;
+        1:   21:            new_event->next = NULL;
+        1:   22:            strcpy(new_event->event_name, event);
+        -:   23:
+        -:   24:            // Checks start_time is less than end_time
+        1:   25:            if(new_event->start_time < new_event->end_time && new_event->start_time >= 0 && new_event->end_time <= 23){
+        -:   26:                // Creates the link list if first node
+        1:   27:                if(*head == NULL){
+        1:   28:                    *head = new_event;
+        -:   29:                }
+        -:   30:                // Adds Node as the new head if the new event's end time is < head's start_time
+    #####:   31:                else if(new_event->end_time < (*head)->start_time){
+    #####:   32:                    new_event->next = *head;
+    #####:   33:                    *head = new_event;
+        -:   34:                }
+        -:   35:                // For cases after first node
+        -:   36:                else {
+    #####:   37:                    struct Node* temp = *head;
+    #####:   38:                    while(temp != NULL){
+        -:   39:                        // Adds node to end of the linked list
+    #####:   40:                        if(new_event->start_time > temp->end_time && temp->next == NULL){
+    #####:   41:                            temp->next = new_event;
+    #####:   42:                            break;
+        -:   43:                        }
+        -:   44:                        // Adds nodes inbetween nodes i.e. temp -> new event -> (temp->next)
+    #####:   45:                        else if(new_event->start_time > temp->end_time && new_event->end_time < temp->next->start_time){
+    #####:   46:                            new_event->next = temp->next;
+    #####:   47:                            temp->next = new_event;
+    #####:   48:                            break;
+        -:   49:                        }
+    #####:   50:                        temp = temp->next;
+        -:   51:                    }
+        -:   52:                    // If program fully traverses linked list and could not find spot, prints event error
+    #####:   53:                    if(temp == NULL)
+    #####:   54:                        printf("Event overlap error\n");
+        -:   55:                }
+        -:   56:            }
+        -:   57:            else
+    #####:   58:                printf("Event start and end time error\n");
+        1:   59:}
+        -:   60:
+    #####:   61:void delete_event(struct Node** head, char* event){
+        -:   62:
+        -:   63:    // if head is empty
+    #####:   64:    if(*head == NULL){
+    #####:   65:        return;
+        -:   66:    }
+        -:   67:
+    #####:   68:    struct Node* temp = *head;
+        -:   69:
+        -:   70:    // if event is head
+    #####:   71:    if(strcmp((*head)->event_name, event) == 0){
+    #####:   72:        *head = (*head)->next;
+    #####:   73:        free(temp);
+    #####:   74:        return;
+        -:   75:    }
+        -:   76:    
+    #####:   77:    struct Node* deleted = NULL;
+        -:   78:
+    #####:   79:    while (temp->next != NULL){
+        -:   80:        // if event is last node
+    #####:   81:        if(temp->next->next == NULL && strcmp(temp->next->event_name, event) == 0){
+    #####:   82:            deleted = temp->next;
+    #####:   83:            temp->next = NULL;
+    #####:   84:            free(deleted);
+    #####:   85:            return;
+        -:   86:        }   
+        -:   87:        // if event is middle node
+    #####:   88:        else if(temp->next->next != NULL && strcmp(temp->next->event_name, event) == 0){
+    #####:   89:            deleted = temp->next;
+    #####:   90:            temp->next = temp->next->next;
+    #####:   91:            free(deleted);
+    #####:   92:            return;
+        -:   93:        }
+    #####:   94:        temp = temp->next;
+        -:   95:    } 
+        -:   96:}
+        -:   97:
+    #####:   98:void print_string(struct Node** head){
+        -:   99:    
+    #####:  100:    struct Node* temp = *head;
+    #####:  101:    while (temp != NULL){
+    #####:  102:        printf("%s %d %d\n", temp->event_name, temp->start_time, temp->end_time);
+    #####:  103:        temp = temp->next;
+        -:  104:    }
+    #####:  105:}
+        -:  106:
+        1:  107:int main(int argc, char** argv){
+        -:  108:    char command[BUF_SZ];
+        -:  109:
+        1:  110:    struct Node* head = NULL;
+        -:  111:    do{
+        2:  112:        printf("$ ");
+        2:  113:        scanf("%s", command);
+        -:  114:
+        2:  115:        if(strcmp(command, "add") == 0){
+        -:  116:            char event[BUF_SZ];
+        -:  117:            int start, end;
+        1:  118:            scanf("%s %d %d", event, &start, &end);
+        1:  119:            add_event(&head, event, start, end);
+        -:  120:        }
+        1:  121:        else if(strcmp(command, "delete") == 0){
+        -:  122:            char event[BUF_SZ];
+    #####:  123:            scanf("%s", event);
+    #####:  124:            delete_event(&head, event);
+        -:  125:        }
+        1:  126:        else if(strcmp(command, "printcalendar") == 0){
+    #####:  127:            print_string(&head);
+        -:  128:        }
+        2:  129:    } while(strcmp(command, "quit") != 0);
+        -:  130:
+        2:  131:    while(head != NULL){
+        1:  132:        struct Node* temp = NULL;
+        1:  133:        temp = head;
+        1:  134:        head = head->next;
+        1:  135:        free(temp);
+        -:  136:    }
+        -:  137:}
