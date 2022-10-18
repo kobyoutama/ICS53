@@ -13,17 +13,17 @@
 #define MAXLINE 80
 #define BUFFERSIZE 256
 
-pid_t fg; 
+// fg = -1 represents no processes on forground
+pid_t fg = -1; 
 pid_t pid;
 
+void prntint_handler(int sig){}
+
 void chldint_handler(int sig){
-    if(sig == SIGINT)
-        exit(0);
+    if(sig == SIGINT && fg > -1)
+        kill(fg, SIGINT);
+        fg = -1;
     }
-
-void prntint_handler(int sig){
-    }
-
 void eval(char **args){
     int child_stat;
 
