@@ -101,7 +101,6 @@ int addJob(pid_t pid, int status, char* args){
             return 1;
         }
     }
-
 }
 
 void createJobList(){
@@ -212,6 +211,79 @@ void toFG(int id, int idtype){
     }
 }
 
+void terminate(int id, int idtype){
+    // if idtype is pid
+         int status;
+
+    if(idtype){
+        pid_t pid = id;
+    // loops through all jobs and checks status
+        for (int i = 0; i < MAXJOBS; i++){
+        // if status is not none, kill and reap.
+            if(jobList[i].pid == id){
+                if(jobList[i].status == STOPPED)
+                    kill(jobList[i].pid, SIGCONT);
+
+            kill(jobList[i].pid, SIGINT);
+            jobList[i].status = NOJOB; 
+            pid_t pid = wait(&status);
+            removeJob(jobList[i].pid);
+            if(WIFEXITED(status))
+                printf("status %d terminated with code %d\n", pid, WEXITSTATUS(status));
+            }
+        }
+    }
+    // if idtype is jid
+    else {
+            if(jobList[id].status == STOPPED)
+                kill(jobList[id].pid, SIGCONT);
+
+            kill(jobList[id].pid, SIGINT);
+            jobList[id].status = NOJOB; 
+            pid_t pid = wait(&status);
+            removeJob(jobList[id].pid);
+            if(WIFEXITED(status))
+                printf("status %d terminated with code %d\n", pid, WEXITSTATUS(status));
+    }
+}
+
+void toBG(int id, int idtype){
+    int child_stat;
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+
+    if(idtype){
+        pid_t pid = id;
+         for (int i = 0; i < MAXJOBS; i++){
+            if(jobList[i].pid == id){
+                jobList[i].status = BACKGROUND;
+                bg = FOREGROUND;
+                sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                kill(jobList[i].pid, SIGCONT);
+                sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+                return; 
+            }
+        }
+    }
+    // if idtype is jid
+    else {
+        for (int i = 0; i < MAXJOBS; i++){
+            if(jobList[i].jid == id){
+                jobList[i].status = BACKGROUND;
+                bg = FOREGROUND;
+                sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                kill(jobList[i].pid, SIGCONT);
+                sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+                return;
+            }
+        }            
+    }
+}
 
 int builtin_command(char **args){
     // "pwd" prints present working directory
@@ -245,6 +317,24 @@ int builtin_command(char **args){
         }
         else{
             toFG(atoi(args[1]), 1);
+        }
+        return 1;
+    }
+     else if (!strcmp("bg", args[0])){
+        if (args[1][0] ==  '%'){
+            toBG(atoi(strtok(args[1], "%%")), 0);
+        }
+        else{
+            toBG(atoi(args[1]), 1);
+        }
+        return 1;
+    }
+    else if (!strcmp("kill", args[0])){
+        if (args[1][0] ==  '%'){
+            terminate(atoi(strtok(args[1], "%%")), 0);
+        }
+        else{
+            terminate(atoi(args[1]), 1);
         }
         return 1;
     }
@@ -319,12 +409,11 @@ void eval(){
 
 int main(int argc, char** argv){
     createJobList();
-    
-    
-    while (1) {
-signal(SIGINT, int_handler);    
+    signal(SIGINT, int_handler);    
     signal(SIGCHLD, child_handler);  
     signal(SIGTSTP, stp_handler);
+    while (1) {
+        
         if (feof(stdin))
             exit(0);
         

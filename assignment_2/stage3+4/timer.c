@@ -1,6 +1,6 @@
 #include<unistd.h>
 
 int main(){
-    sleep(30);
+    sleep(4);
     return 0;
 }
