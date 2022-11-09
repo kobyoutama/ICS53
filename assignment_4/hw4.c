@@ -88,7 +88,7 @@ void deallocate(int p){
     int next_head = p+sz+1;
     
     // checks not out of bound of heap
-    if (next_head <= HEAP_SIZE-1){
+    if (next_head < HEAP_SIZE-1){
         // checks if next block is free
         if(!(heap[next_head] & 1)){
             // if free, coalesce blocks
@@ -150,6 +150,17 @@ void allocate(int size){
     printf("unsuccessfully malloc with size :%d\n", size);
 }
 
+void writemem(int p, char* str){
+    for (int i=0; i<strlen(str); i++)
+        heap[p+i] = (int) str[i]; 
+}
+
+void printmem(int p, int len){
+    for(int i=0; i<len; i++)
+        (i == 0) ? printf("%d",heap[p]) : printf("-%d", heap[p+i]);
+    printf("\n");
+}
+
 void initializeHeap(){
     // set header/footer size of heap and sets LSB to 0 
     int size = ((HEAP_SIZE) << 1) & -2; 
@@ -172,6 +183,8 @@ int main(int argc, char **argv){
         if (!strcmp(args[0], "quit")) return 0;
         else if (!strcmp(args[0], "malloc")) allocate(atoi(args[1]));
         else if (!strcmp(args[0], "free")) deallocate(atoi(args[1]));
+        else if (!strcmp(args[0], "writemem")) writemem(atoi(args[1]),args[2]);
+        else if (!strcmp(args[0], "printmem")) printmem(atoi(args[1]),atoi(args[2]));
         else if (!strcmp(args[0], "print")) print_heap();
         else if (!strcmp(args[0], "printb")) to_bits(heap[atoi(args[1])]);
 
