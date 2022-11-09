@@ -16,10 +16,13 @@ int fit_algo = 0;
 char heap[HEAP_SIZE] = { [0 ... (HEAP_SIZE-1)] = 0 };
 
 int msb(int i){
+    /* function returns value of the 7 most significant bits in decimal */
     return (i>>1) & 0x7F;
 }
 
 void to_bits(int n){
+    /* adopted from "https://www.geeksforgeeks.org/binary-representation-of-a-given-number/" */
+    /*     for debugging to ensure correct bit manipulation */
     unsigned i;
     for (i = 1 << 7; i > 0; i = i / 2)
         (n & i) ? printf("1") : printf("0");
@@ -71,7 +74,6 @@ void addBlock(int p, int len){
 void deallocate(int p){
     /* p is the start of a payload (p-1) == header */
 
-
     // size of block (not including header/footer)
     int sz = msb(heap[p-1])-2;
 
@@ -79,6 +81,9 @@ void deallocate(int p){
     for (int i=0; i<sz; i++)
         heap[p+i] = 0;
     
+    // sets header/footer as free block
+    heap[p+sz] = heap[p-1] = ((sz+2) << 1) & -2 ;
+
     // forward coalesce if next block is free
     int next_head = p+sz+1;
     
@@ -93,6 +98,9 @@ void deallocate(int p){
             int new_sz = ((next_sz+sz+4) << 1) & -2;
             heap[p-1] = new_sz;
             heap[next_head+next_sz+1] = new_sz;
+            
+            // updates current block's size 
+            sz = msb(new_sz) -2;
         }
     }
 
@@ -104,6 +112,12 @@ void deallocate(int p){
         // checks if previous block is free
         if(!(heap[prev_footer] & 1)){
             // if free, coalesce blocks
+            int prev_sz = msb(heap[prev_footer])-2;
+            heap[prev_footer] = heap[prev_footer+1] = 0;
+
+            int new_sz = ((prev_sz+sz+4) << 1) & -2;
+            heap[prev_footer-prev_sz-1] = new_sz;
+            heap[p+sz] = new_sz;
         }
     }
 }
