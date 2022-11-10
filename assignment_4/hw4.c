@@ -15,6 +15,19 @@
 int fit_algo = 0;
 char heap[HEAP_SIZE] = { [0 ... (HEAP_SIZE-1)] = 0 };
 
+struct BlockList{
+    int size;
+    int start;
+    struct BlockList *next; 
+};
+
+struct BlockLIst *list = NULL;
+
+/*  TODO:               */
+/*        BLOCKLIST     */
+/*        Double check does not split for bytes < 3 */
+
+
 int msb(int i){
     /* function returns value of the 7 most significant bits in decimal */
     return (i>>1) & 0x7F;
@@ -124,41 +137,90 @@ void deallocate(int p){
 
 
 void allocate(int size){
-    int p = 0; // starts ptr at index 0 
-
+    int p = 0;
+    int found = 0; // starts ptr at index 0 
+ 
     /* Allocate using First Fit */
     if (!fit_algo){
         // printf("First Fit\n");
-        // Not passed end
-        // already allocated
-        // too small 
-        // goto next block (word addressed)
         while ((p < HEAP_SIZE) && 
         ((heap[p] & 1) || 
         msb(heap[p]) < size))   
         {
-        p = p + (msb(heap[p] & -2));
+            found = 1;
+            p = p + (msb(heap[p] & -2));
         }
-        printf("%d\n",p+1);
-        addBlock(p, size);  
-        return;
+        // only add block if there is an open block
+        if(found){
+            addBlock(p, size);  
+            printf("%d\n",p+1);
+            return;
+        }
     }
+
+    /* Allocate using Best Fit */
     else{
-        printf("Best Fit\n");
+        //printf("Best Fit\n");
+        int smallest_size = HEAP_SIZE+1;
+        int smallest_p = -1;
+
+        // cycle through entire heap
+        while(p<HEAP_SIZE){
+
+            // check if it is unallocated and the size < unallocated block size
+            if((!(heap[p]&1)) && size < msb(heap[p])){
+
+                // if the current unallocated block is smaller than the saved block
+                if(smallest_size > msb(heap[p])){
+                    // remember pointer location and size
+                    smallest_size = msb(heap[p]);
+                    smallest_p = p;
+                }
+            }
+
+            // iterate to next block
+            p = p + (msb(heap[p] & -2));
+        }
+
+        // if pointer is -1, could not find a block, so skip adding and print error 
+        if(smallest_p != -1){
+            addBlock(smallest_p, size);  
+            printf("%d\n",smallest_p+1);
+            return;
+        }
+
     }  
     
-    printf("unsuccessfully malloc with size :%d\n", size);
+    printf("Heap Full : Unsuccessful Malloc of Size :%d\n", size);
 }
 
 void writemem(int p, char* str){
+    /* function writes ascii value of characters into heap */
+    /*     *** Does not do explicit bounds-checking ***    */
     for (int i=0; i<strlen(str); i++)
         heap[p+i] = (int) str[i]; 
 }
 
 void printmem(int p, int len){
+    /*     function prints decimal value of heap memory    */
+    /*     *** Does not do explicit bounds-checking ***    */
     for(int i=0; i<len; i++)
         (i == 0) ? printf("%d",heap[p]) : printf("-%d", heap[p+i]);
     printf("\n");
+}
+
+void blocklist(){
+    int p = 0;
+    printf("BLOCKLIST : not implemented\n");
+    // while (p < HEAP_SIZE){
+    //     if(heap[p] & 1){
+    //         if(!head){
+    //             head = BlockList {1,1,NULL};
+    //         }
+    //     }
+    //     p = p + (msb(heap[p] & -2));
+    // }
+    
 }
 
 void initializeHeap(){
@@ -185,6 +247,7 @@ int main(int argc, char **argv){
         else if (!strcmp(args[0], "free")) deallocate(atoi(args[1]));
         else if (!strcmp(args[0], "writemem")) writemem(atoi(args[1]),args[2]);
         else if (!strcmp(args[0], "printmem")) printmem(atoi(args[1]),atoi(args[2]));
+        else if (!strcmp(args[0], "blocklist")) blocklist();
         else if (!strcmp(args[0], "print")) print_heap();
         else if (!strcmp(args[0], "printb")) to_bits(heap[atoi(args[1])]);
 
