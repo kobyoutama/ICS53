@@ -19,8 +19,38 @@ int check_date(char *date){
     char pat[52] = "^[[:digit:]]\\{4\\}\\(-[[:digit:]]\\{2\\}\\)\\{2\\}$";
     regex_t reegex;
     regcomp(&reegex, pat, 0);
-
     return regexec(&reegex, date, 0, NULL, 0);
+}
+
+int check_valid_dates(char *start, char* end){
+    /* return 0 if dates match */
+    /* returns -1 int if start is before end */
+    /* returns 1 int if start is after end  */
+    int sy, sm, sd, ey, em, ed;
+    sscanf(start, "%d-%d-%d", &sy, &sm, &sd);
+    sscanf(end, "%d-%d-%d", &ey, &em, &ed);
+
+    if(sy == ey && em == sm && sd == ed){
+        return 0;
+    }
+
+    if(sy <= ey){
+        if(sy == ey){
+            if(sm <= em){
+                if(sm == em){
+                    if(sd < ed){
+                        return -1;
+                    }
+                    return 1;
+                }
+                return -1;
+            }
+            return 1;
+        }
+        return -1;
+    }
+    return 1;
+
 }
 
 int user_input(char *line, char *buf){
@@ -40,11 +70,13 @@ int user_input(char *line, char *buf){
     }
 
     char *token = NULL;
+    char cpy[BUFFER_SIZE];
     char *tokenized[MAX_TOKENS];
     const char* delims = " \t\n";
 
     int i = 0;
-    token = strtok(line, delims);
+    strcpy(cpy, line);
+    token = strtok(cpy, delims);
 
 
     while (token != NULL){
@@ -58,17 +90,20 @@ int user_input(char *line, char *buf){
     
     
 
-    if(!strcmp(tokenized[0], "PriceOnDate")){
+    if(!strcmp(tokenized[0], "PricesOnDate")){
         if(!check_date(tokenized[1])){
-            printf("Correct Format\n");
         }
-    }
+        else{
+                printf("Invalid syntax\n");
+                return -1;    
+        }
+    }   
     else if(!strcmp(tokenized[0], "MaxPossible")){
         if(i == 5 &&
             (!strcmp(tokenized[1], "loss") || !strcmp(tokenized[1], "profit")) &&
             (!strcmp(tokenized[2], "PFE") || !strcmp(tokenized[2], "MRNA")) &&
-            !check_date(tokenized[3]) && !check_date(tokenized[4])){
-            printf("Correct Format\n");
+            !check_date(tokenized[3]) && !check_date(tokenized[4]) &&
+            check_valid_dates(tokenized[3], tokenized[4]) == -1){
         }
         else{
             printf("Invalid syntax\n");
@@ -101,7 +136,7 @@ void connect_to_server(char *src, int port){
     
     if (inet_pton(AF_INET, src, 
     &serv_addr.sin_addr)<= 0) {
-        printf("\nInvalid address/ Address not supported \n");
+        printf("\nInvalid address/Address not supported \n");
         exit(-1);
     }
     
@@ -117,40 +152,32 @@ void run_client(){
         printf("\nConnection Failed \n");
         exit(-1);
     }
-    printf("Connection Established\n");
+    // printf("Connection Established\n");
 
     while(1){
         // prompts user input until valid
         while(user_input(cmd_line, buffer)){}
         if(!strcmp(cmd_line,"quit")){break;}
         send(sock, buffer, BUFFER_SIZE, 0);
-        printf("[SENT] message: %s\n", buffer);
+        // printf("[SENT] message: %s\n", buffer);
         valread = read(sock, buffer, BUFFER_SIZE);
-        printf("[RECV] message: %s\n", buffer);
+        printf("%s\n", buffer);
+        // printf("[RECV] message: %s\n", buffer);
     }
-    printf("CLOSING CLIENT\n");
+    // printf("CLOSING CLIENT\n");
     close(sock);
 }
 
 int main(int argc, char* argv[])
 {
-    
-    char buffer[BUFFER_SIZE] = { 0 };
-    char cmd_line[BUFFER_SIZE] = { 0 };
-    while(user_input(cmd_line, buffer)){}
-
-
     // establish connection with server
-    // char *src = argv[1];
-    // int port = atoi(argv[2]);
-    char src[64] = "127.0.0.1";
-    int port = 32222;
+    char *src = argv[1];
+    int port = atoi(argv[2]);
 
-    /* change src and port to arg[2], arg[3]*/
-    //connect_to_server(src, port);
+    connect_to_server(src, port);
 
     // talk with server
-    //run_client();
+    run_client();
 
     return 0;
 }
